@@ -14,7 +14,9 @@ def dates_fix(df):
     # Calculating interval length
     df_copy['Duración días'] = (df_copy['Fecha lectura'] - df_copy['Fecha lectura anterior']).dt.days
 
+    
     return df_copy
+
 
 def distrib_1day_rows(df):
     for i, row in df.iterrows():        
@@ -43,6 +45,7 @@ def distrib_1day_rows(df):
     no_1dayrows_df = df[df['Duración días'] != 1].copy().reset_index(drop=True)
     return no_1dayrows_df
 
+
 periodict = {1: ['P1', 'P2', 'P6'],
  2: ['P1', 'P2', 'P6'],
  3: ['P2', 'P3', 'P6'],
@@ -56,9 +59,10 @@ periodict = {1: ['P1', 'P2', 'P6'],
  11: ['P2', 'P3', 'P6'],
  12: ['P1', 'P2', 'P6']}
 
-def div_rows(df, periodict):
+
+def div_rows(df):
     splited_rows = []
-    work_df = dates_fix(df)
+    work_df = df.copy()
     
     # Loop through each row in the original DataFrame
     for _, row in work_df.iterrows():
@@ -145,18 +149,49 @@ def div_rows(df, periodict):
             })
 
     # Create DataFrame with the split rows and redistribute any 1-day rows
-    final_df = pd.DataFrame(splited_rows)
-    final_df = distrib_1day_rows(final_df)
+    pre_df = pd.DataFrame(splited_rows)
+    pre_df['Mes'] = pre_df['Fecha lectura anterior'].dt.strftime('%B')
+    final_df = distrib_1day_rows(pre_df)
 
     # Reorder the columns to keep things consistent
     orden_columnas = ['Fecha lectura anterior', 'Fecha lectura', 'Duración días', 'Proporción días', 
-                  'Consumo P1', 'Consumo P2', 'Consumo P3', 'Consumo P4', 'Consumo P5', 'Consumo P6']
+                  'Consumo P1', 'Consumo P2', 'Consumo P3', 'Consumo P4', 'Consumo P5', 'Consumo P6', 'Mes']
     final_df = final_df[orden_columnas].fillna(0)
 
-    return final_df, splited_rows
+    return final_df
 
-# Apply the function to split rows and display the result
-df_dividido, filas_dic = div_rows(df, periodict)
 
-# Show the resulting DataFrame
-df_dividido.head(35)
+def join_per_month(df):
+    work_df = df.copy()  # Make a copy of the DataFrame to avoid modifying the original
+    i = 0  # Initialize index to loop through the DataFrame
+
+    while i < len(work_df) - 1:  # Loop through until the second-to-last row
+        # Get the current month and the next row's month
+        actual_month = work_df.loc[i, 'Mes']
+        next_row_month = work_df.loc[i + 1, 'Mes']
+
+        # If the current row's month matches the next row's month
+        if actual_month == next_row_month:
+            # Update the end date to match the next row's end date
+            work_df.loc[i, 'Fecha lectura'] = work_df.loc[i + 1, 'Fecha lectura']
+
+            # Add up the consumption values for P1 to P6
+            for p in range(1, 7):
+                if f'Consumo P{p}' in work_df.columns:
+                    work_df.loc[i, f'Consumo P{p}'] += work_df.loc[i + 1, f'Consumo P{p}']
+
+            # Drop the next row since we've merged it
+            work_df = work_df.drop(i + 1).reset_index(drop=True)
+        else:
+            i += 1  # If they're different months, just move to the next row
+
+    return work_df
+
+def process_file(df):
+
+    raw = df.copy()
+    fixed_dates = dates_fix(raw)
+    div_rows_df = div_rows(fixed_dates)
+    final_df = join_per_month(div_rows_df)
+
+    return final_df

@@ -1,15 +1,16 @@
-<!DOCTYPE html>
+{% extends 'analisis/base.html' %}
 
-<html>
-<head>
-    <title>Upload File</title>
-</head>
-<body>
-    <h1>Upload a CUPS Report</h1>
-    <form method="post" enctype="multipart/form-data">
+{% block title %}Upload CUPS Report{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1 class="text-center mb-4">CUPS Report Analyzer</h1>
+    <form method="post" enctype="multipart/form-data" class="form-inline">
         {% csrf_token %}
-        <input type="file" name="file">
-        <button type="submit">Upload</button>
+        <div class="input-group">
+            <input type="file" class="form-control" id="formFile" name="file">
+            <button type="submit" class="btn btn-primary ml-2">Upload</button>
+        </div>
     </form>
-</body>
-</html>
+</div>
+{% endblock %}

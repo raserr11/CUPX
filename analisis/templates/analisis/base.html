@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU5OX3mI1RkAqP8F9JCL5RFp4dZjO/tpJk5c" crossorigin="anonymous">
+
+    <title>{% block title %}CUPX App{% endblock %}</title>
+    <style>
+        body {
+            background-color: #1a1a1a; /* Fondo gris oscuro */
+            color: #f0f0f0; /* Texto claro */
+            font-family: 'Roboto', sans-serif; /* Aplicar la fuente Roboto */
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Alinea todo al centro horizontalmente */
+        }
+        .form-container {
+            background-color: #333; /* Fondo gris más claro */
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Sombra suave */
+            max-width: 500px;
+            width: 100%;
+            margin-top: 140px; /* Ajusta la separación entre la barra y el formulario */
+        }
+        .navbar {
+            background-color: #262626; /* Fondo oscuro para la barra */
+            width: 100%; /* Barra ocupa todo el ancho */
+            padding: 10px 20px;
+            position: fixed; /* Barra fija en la parte superior */
+            top: 0; /* Sin margen superior */
+            left: 0;
+            z-index: 1000; /* Hace que la barra se quede arriba del contenido */
+        }
+        .navbar-brand {
+            color: #007bff; /* Azul para el nombre de la app */
+            font-size: 32px;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        /* Ajustes para simplificar el formulario */
+        .input-group {
+            width: 100%; /* Asegura que el input y el botón ocupen todo el espacio */
+        }
+        .form-inline .form-control {
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Barra superior con el nombre de la app -->
+    <nav class="navbar">
+        <a class="navbar-brand" href="#">CUPX</a>
+    </nav>
+
+    <!-- Bloque para el contenido específico de cada página -->
+    <div class="container">
+        {% block content %}
+        <!-- Aquí va el contenido específico de cada página -->
+        {% endblock %}
+    </div>
+</body>
+</html>
