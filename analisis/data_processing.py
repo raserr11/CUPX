@@ -1,4 +1,5 @@
 import pandas as pd
+from datetime import timedelta
 
 def dates_fix(df):
     df_copy = df.copy()
