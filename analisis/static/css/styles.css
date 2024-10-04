@@ -1,0 +1,14 @@
+body {
+    background-color: #1a1a1a; /* Fondo gris oscuro */
+    color: #f0f0f0; /* Texto claro */
+    font-family: 'Roboto', sans-serif; /* Fuente Roboto */
+}
+
+.navbar-brand {
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.container {
+    margin-top: 80px; /* Para evitar que el contenido quede detrás de la barra de navegación */
+}

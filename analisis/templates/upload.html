@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload CUPS Report{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-center align-items-center" style="min-height: 60vh;">
+    <div class="bg-dark p-5 rounded">
+        <h1 class="text-center mb-4">CUPX Analyzer</h1>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="formFile" class="form-label">Select CUPS Report</label>
+                <input class="form-control" type="file" id="formFile" name="file" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Upload</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

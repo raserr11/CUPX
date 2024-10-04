@@ -1,18 +1,40 @@
 import pandas as pd
 from datetime import timedelta
 
+# Info del Cliente (página=0)
+# +----------------------------------------------------------------------------------------------------------
+
+def customer_info(df):
+
+    df_c_info = df.loc[:0,['CUPS', 'Titular', 'CIF', 'Distribuidora',
+       'Localidad del suministro', 'Cod. Postal del suministro', 'Tarifa', 'Ultima lectura', 'CNAE',
+       'Fecha cambio última comercializadora', 'Potencia BIE']]
+    df_c_info.rename(columns={'Fecha cambio última comercializadora':'Último cambio comerc', 'Localidad del suministro':'Localidad','Cod. Postal del suministro':'CP'}, inplace=True)
+
+    pot_index = df[df['Direccion del suministro'] == 'Potencia'].index[0] +1
+    print(pot_index)
+    df_pot = df.iloc[pot_index:pot_index+6, df.columns.get_loc('Direccion del suministro')].reset_index().drop('index',axis=1)
+    df_pot['Pot'] = [f'P{i+1}' for i in range(len(df_pot))]
+    df_pot = df_pot[['Pot','Direccion del suministro']]
+    df_pot.rename(columns={'Direccion del suministro': 'Potencia_kW'}, inplace=True)
+
+    return df_c_info, df_pot
+
+
+# Consumo Activo (página=1)
+# +----------------------------------------------------------------------------------------------------------
 def dates_fix(df):
     df_copy = df.copy()
 
-    # Delete blank spaces
+    # Limpiamos espacios en blanco
     df_copy['Fecha lectura anterior'] = df_copy['Fecha lectura anterior'].str.strip()
     df_copy['Fecha lectura'] = df_copy['Fecha lectura'].str.strip()
 
-    # Convert date columns to pandas datetime
+    # Convertimos las columnas de fecha a datetime de pandas
     df_copy['Fecha lectura anterior'] = pd.to_datetime(df_copy['Fecha lectura anterior'], format='%d/%m/%Y')
     df_copy['Fecha lectura'] = pd.to_datetime(df_copy['Fecha lectura'], format='%d/%m/%Y')
 
-    # Calculating interval length
+    # Calculamos la duración del intervalo
     df_copy['Duración días'] = (df_copy['Fecha lectura'] - df_copy['Fecha lectura anterior']).dt.days
 
     
@@ -22,29 +44,30 @@ def dates_fix(df):
 def distrib_1day_rows(df):
     for i, row in df.iterrows():        
 
-        # Check if row interval is just 1 day
+        # Verificamos si el intervalo de la fila es de solo 1 día
         if row['Duración días'] == 1:
-            # We extract the date's month
+            # Sacamos el mes de la fecha
             actual_month = row['Fecha lectura'].month
 
-            # Check previous row to si if they have the same month
+            # Comparamos con la fila anterior para ver si tienen el mismo mes
             if i > 0 and df.loc[i-1, 'Fecha lectura'].month == actual_month:
-                # Has the same month as previous row? --> sum the consumption for every period
+                # ¿Es el mismo mes que la fila anterior? --> sumamos el consumo por cada periodo
                 for p in range(1, 7):  # P1 a P6
                     column = f'Consumo P{p}'
                     if column in df.columns:
                         df.loc[i-1, column] += row.get(column, 0)
-            # Previous row hasn't the same month, check next row
+            # Si la fila anterior no es del mismo mes, revisamos la siguiente
             elif i < len(df) - 1 and df.loc[i+1, 'Fecha lectura'].month == actual_month:
-                # Has the same month as next row? --> sum the consumption for every period
+                # ¿Es el mismo mes que la fila siguiente? --> sumamos el consumo por cada periodo
                 for p in range(1, 7):  # P1 a P6
                     column = f'Consumo P{p}'
                     if column in df.columns:
                         df.loc[i+1, column] += row.get(column, 0)
     
-    # Delete 1 day rows after distributing consumption
+    # Eliminamos filas de 1 día que sobran después de repartir el consumo
     no_1dayrows_df = df[df['Duración días'] != 1].copy().reset_index(drop=True)
     return no_1dayrows_df
+
 
 
 periodict = {1: ['P1', 'P2', 'P6'],
@@ -65,38 +88,36 @@ def div_rows(df):
     splited_rows = []
     work_df = df.copy()
     
-    # Loop through each row in the original DataFrame
+    # Iterar sobre cada fila del DataFrame
     for _, row in work_df.iterrows():
         start_date = row['Fecha lectura anterior']
         end_date = row['Fecha lectura']
-        consumption_per_period = {f'Consumo P{i}': row[f'Consumo P{i}'] for i in range(1, 7)}  # Get consumption for P1 to P6
+        consumption_per_period = {f'Consumo P{i}': row[f'Consumo P{i}'] for i in range(1, 7)}  # Consumo de P1 a P6
         total_days = row['Duración días']
 
-        # If dates span over different months, split the row
+        # Dividir si las fechas abarcan meses diferentes
         if start_date.month != end_date.month or start_date.year != end_date.year:
-            # Get periods for each month
-            periods_part1 = periodict[start_date.month]  # First month periods
-            periods_part2 = periodict[end_date.month]  # Second month periods
+            # Obtener periodos de cada mes
+            periods_part1 = periodict[start_date.month]
+            periods_part2 = periodict[end_date.month]
             
-            # Find the shared periods between both months
+            # Encontrar periodos compartidos
             shared_periods = set(periods_part1).intersection(periods_part2)
-            
-            # Get the periods that are unique to each month
             unique_periods_part1 = set(periods_part1) - shared_periods
             unique_periods_part2 = set(periods_part2) - shared_periods
 
-            # First part: from start_date to the last day of start month
+            # Parte 1: desde start_date hasta el último día del mes de inicio
             last_day_of_start_month = pd.Timestamp(start_date.year, start_date.month, 
                                                    pd.Timestamp(start_date.year, start_date.month, 1).days_in_month)
             days_part1 = (last_day_of_start_month - start_date).days + 1
             prop_days1 = days_part1 / total_days
 
-            # Distribute consumption proportionally for shared periods
+            # Distribuir consumo proporcionalmente para periodos compartidos
             consumptions_part1 = {
                 f'Consumo P{p[-1]}': round(prop_days1 * consumption_per_period[f'Consumo P{p[-1]}'], 0)
                 for p in shared_periods
             }
-            # Assign full consumption for unique periods in the first month
+            # Asignar consumo completo para periodos únicos del primer mes
             consumptions_part1.update({
                 f'Consumo P{p[-1]}': consumption_per_period[f'Consumo P{p[-1]}']
                 for p in unique_periods_part1
@@ -110,17 +131,17 @@ def div_rows(df):
                 **consumptions_part1
             })
 
-            # Second part: from the first day of the next month to end_date
+            # Parte 2: desde el primer día del siguiente mes hasta end_date
             first_day_of_next_month = last_day_of_start_month + timedelta(days=1)
             days_part2 = (end_date - first_day_of_next_month).days + 1
             prop_days2 = days_part2 / total_days
 
-            # Distribute consumption proportionally for shared periods in the second month
+            # Distribuir consumo proporcionalmente para periodos compartidos en el segundo mes
             consumptions_part2 = {
                 f'Consumo P{p[-1]}': consumption_per_period[f'Consumo P{p[-1]}'] - consumptions_part1.get(f'Consumo P{p[-1]}', 0)
                 for p in shared_periods
             }
-            # Assign full consumption for unique periods in the second month
+            # Asignar consumo completo para periodos únicos del segundo mes
             consumptions_part2.update({
                 f'Consumo P{p[-1]}': consumption_per_period[f'Consumo P{p[-1]}']
                 for p in unique_periods_part2
@@ -135,7 +156,7 @@ def div_rows(df):
             })
 
         else:
-            # If the dates are within the same month, keep the row as is with all its consumption
+            # Si las fechas están en el mismo mes, mantener la fila con todo su consumo
             month_periods = periodict[start_date.month]
             month_consumptions = {
                 f'Consumo P{p[-1]}': consumption_per_period[f'Consumo P{p[-1]}'] for p in month_periods
@@ -149,12 +170,12 @@ def div_rows(df):
                 **month_consumptions
             })
 
-    # Create DataFrame with the split rows and redistribute any 1-day rows
+    # Crear DataFrame con filas divididas y redistribuir filas de 1 día
     pre_df = pd.DataFrame(splited_rows)
     pre_df['Mes'] = pre_df['Fecha lectura anterior'].dt.strftime('%B')
     final_df = distrib_1day_rows(pre_df)
 
-    # Reorder the columns to keep things consistent
+    # Reordenar columnas
     orden_columnas = ['Fecha lectura anterior', 'Fecha lectura', 'Duración días', 'Proporción días', 
                   'Consumo P1', 'Consumo P2', 'Consumo P3', 'Consumo P4', 'Consumo P5', 'Consumo P6', 'Mes']
     final_df = final_df[orden_columnas].fillna(0)
@@ -162,37 +183,71 @@ def div_rows(df):
     return final_df
 
 
-def join_per_month(df):
-    work_df = df.copy()  # Make a copy of the DataFrame to avoid modifying the original
-    i = 0  # Initialize index to loop through the DataFrame
 
-    while i < len(work_df) - 1:  # Loop through until the second-to-last row
-        # Get the current month and the next row's month
+def join_per_month(df):
+    work_df = df.copy()  # Hacemos una copia del DataFrame para no modificar el original
+    i = 0  # Inicializamos el índice para recorrer el DataFrame
+
+    while i < len(work_df) - 1:  # Recorremos hasta la penúltima fila
+        # Obtenemos el mes actual y el de la siguiente fila
         actual_month = work_df.loc[i, 'Mes']
         next_row_month = work_df.loc[i + 1, 'Mes']
 
-        # If the current row's month matches the next row's month
+        # Si los meses coinciden
         if actual_month == next_row_month:
-            # Update the end date to match the next row's end date
+            # Actualizamos la fecha de fin al de la siguiente fila
             work_df.loc[i, 'Fecha lectura'] = work_df.loc[i + 1, 'Fecha lectura']
 
-            # Add up the consumption values for P1 to P6
+            # Sumamos los consumos de P1 a P6
             for p in range(1, 7):
                 if f'Consumo P{p}' in work_df.columns:
                     work_df.loc[i, f'Consumo P{p}'] += work_df.loc[i + 1, f'Consumo P{p}']
 
-            # Drop the next row since we've merged it
+            # Eliminamos la siguiente fila porque la hemos fusionado
             work_df = work_df.drop(i + 1).reset_index(drop=True)
         else:
-            i += 1  # If they're different months, just move to the next row
+            i += 1  # Si son meses diferentes, pasamos a la siguiente fila
 
     return work_df
 
-def process_file(df):
+def select_last_year(df):
+
+    last_date = df['Fecha lectura'].max()
+    actual_year = last_date.year
+    prev_year = actual_year - 1
+    last_year_df = df[df['Fecha lectura'].dt.year == actual_year]
+    prev_year_df = df[df['Fecha lectura'].dt.year == prev_year]
+
+    # Si faltan meses del año actual, añadimos de los del año anterior
+    if len(last_year_df) < 12:
+        n_missing = 12 - len(last_year_df)
+        m_to_add = prev_year_df.loc[-n_missing:,:]
+        last_year_df = pd.concat([last_year_df, m_to_add], axis=0)
+
+    order = ['Mes', 'Consumo P1', 'Consumo P2', 'Consumo P3',
+       'Consumo P4', 'Consumo P5', 'Consumo P6']
+
+    final_df = last_year_df[order]
+
+    return final_df
+
+def consump_by_month(df):
+    work_df = df.copy()
+
+    for i, row in df.iterrows():
+        work_df.loc[i,'Month Total'] = row[['Consumo P1', 'Consumo P2', 'Consumo P3', 'Consumo P4',
+       'Consumo P5', 'Consumo P6']].sum()
+    
+    return work_df
+
+def process_active(df):
 
     raw = df.copy()
     fixed_dates = dates_fix(raw)
     div_rows_df = div_rows(fixed_dates)
-    final_df = join_per_month(div_rows_df)
+    full_months_df = join_per_month(div_rows_df)
+    last_year_df = select_last_year(full_months_df)
+    months_totals = consump_by_month(last_year_df)
 
-    return final_df
+    return months_totals
+

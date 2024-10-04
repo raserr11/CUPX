@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+
+{% block title %}Previsualización de Datos{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Ajustes para la barra lateral y el contenido principal */
+    .sidebar {
+        background-color: #333; /* Mismo fondo que utilizaste en el formulario */
+        padding: 20px;
+        border-radius: 10px;
+        color: #f0f0f0;
+    }
+    .main-content {
+        margin-top: 20px;
+    }
+    h1, h2 {
+        text-align: center;
+    }
+    .img-fluid {
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        max-width: 100%;
+        height: auto;
+    }
+    /* Ajuste para la separación de las secciones */
+    .section {
+        margin-bottom: 40px;
+    }
+
+    /* Nuevo estilo para las cajas de información */
+    .info-item {
+        display: flex;
+        margin-bottom: 10px;
+    }
+    .info-key {
+        background-color: #555; /* Fondo gris oscuro para la clave */
+        color: #fff; /* Texto blanco para la clave */
+        padding: 10px;
+        flex: 1;
+        text-align: right;
+        border-top-left-radius: 5px;
+        border-bottom-left-radius: 5px;
+    }
+    .info-value {
+        background-color: #f0f0f0; /* Fondo blanco para el valor */
+        color: #333; /* Texto gris oscuro para el valor */
+        padding: 10px;
+        flex: 2;
+        border-top-right-radius: 5px;
+        border-bottom-right-radius: 5px;
+    }
+    /* Estilos para las imágenes de los gráficos */
+    .graph-image {
+        width: 100%;
+        max-width: 800px; /* Establece un ancho máximo para las imágenes */
+        height: auto;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* Asegurar que el contenedor principal permite que las imágenes se expandan */
+    .main-content {
+        width: 100%;
+    }
+    /* Estilos para las barras flotantes de los títulos de los gráficos */
+    .graph-title {
+        background-color: #555; /* Mismo color que las claves de la info del cliente */
+        color: #fff; /* Texto blanco */
+        padding: 10px;
+        text-align: center;
+        border-radius: 5px;
+        margin-bottom: -20px; /* Superpone la barra sobre el gráfico */
+        position: relative;
+        z-index: 1;
+        width: 60%;
+        margin-left: auto;
+        margin-right: auto;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Ajuste del contenedor de cada sección */
+    .section {
+        margin-bottom: 50px; /* Espacio entre las secciones */
+        position: relative;
+        padding-top: 20px; /* Espacio superior para la barra flotante */
+    }
+
+    /* Estilos para las imágenes de los gráficos */
+    .graph-image {
+        width: 100%;
+        max-width: 800px;
+        height: auto;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        border-radius: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <!-- Barra lateral -->
+        <div class="col-md-4">
+            <div class="sidebar">
+                <h3>Información del Suministro</h3>
+                <div class="info-list">
+                    {% for key, value in custom_info.items %}
+                        <div class="info-item">
+                            <div class="info-key">{{ key }}</div>
+                            <div class="info-value">{{ value }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <h4 class="mt-4">Potencias Contratadas</h4>
+                <table class="table table-dark table-striped">
+                    <thead>
+                        <tr>
+                            <th>Periodo</th>
+                            <th>Potencia (kW)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in pot %}
+                            <tr>
+                                <td>{{ item.Pot }}</td>
+                                <td>{{ item.Potencia_kW }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Contenido principal -->
+        <div class="col-md-8">
+            <div class="main-content">
+
+                <div class="section">
+                    <div class="graph-title">
+                        Consumo Total por Mes
+                    </div>
+                    <img src="data:image/png;base64,{{ month_graph }}" alt="Gráfico de Consumo por Mes" class="graph-image">
+                </div>
+
+                <div class="section">
+                    <div class="graph-title">
+                        Consumo Total por Periodo
+                    </div>
+                    <img src="data:image/png;base64,{{ period_graph }}" alt="Gráfico de Consumo por Periodo" class="graph-image">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
